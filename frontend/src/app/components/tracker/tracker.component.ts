@@ -121,6 +121,7 @@ export class TrackerComponent implements OnInit, OnDestroy {
   acceleratorAvailable: boolean = this.stateService.env.ACCELERATOR && this.stateService.network === '';
   eligibleForAcceleration: boolean = false;
   accelerationFlowCompleted = false;
+  paymentReceiptUrl: string | null = null;
   auditEnabled: boolean = this.stateService.env.AUDIT && this.stateService.env.BASE_MODULE === 'mempool' && this.stateService.env.MINING_DASHBOARD === true;
 
   enterpriseInfo: any;
@@ -712,6 +713,12 @@ export class TrackerComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  paymentReceipt(ev) {
+    if (ev?.length) {
+      this.paymentReceiptUrl = ev;
+    }
+  }
+
   setIsAccelerated(initialState: boolean = false) {
     this.isAcceleration = (this.tx.acceleration || (this.accelerationInfo && this.pool && this.accelerationInfo.pools.some(pool => (pool === this.pool.id))));
     if (this.isAcceleration) {
@@ -743,7 +750,8 @@ export class TrackerComponent implements OnInit, OnDestroy {
 
   checkAccelerationEligibility() {
     if (this.tx) {
-      this.tx.flags = getTransactionFlags(this.tx, null, null, this.tx.status?.block_time, this.stateService.network);
+      const txHeight = this.tx.status?.block_height || (this.stateService.latestBlockHeight >= 0 ? this.stateService.latestBlockHeight + 1 : null);
+      this.tx.flags = getTransactionFlags(this.tx, null, null, txHeight, this.stateService.network);
       const replaceableInputs = (this.tx.flags & (TransactionFlags.sighash_none | TransactionFlags.sighash_acp)) > 0n;
       const highSigop = (this.tx.sigops * 20) > this.tx.weight;
       this.eligibleForAcceleration = !replaceableInputs && !highSigop;
